@@ -1,153 +1,76 @@
-# AutoML (Vision Data)
+# Finetune, Optimize, and Search: AutoML for Vision Datasets
 
-## Installation
+This repository provides a generic AutoML pipeline designed to yield an optimal architecture for classifying images from various datasets. The project is aimed at exploring and improving the performance of vision models through fine-tuning, optimization, and architecture search.
 
-To install the repository, first create an environment of your choice and activate it. 
+## Goal
 
-For example, using `venv`:
+The primary goal of this project is to create a robust AutoML pipeline that automatically discovers the best-performing architecture for image classification tasks across diverse datasets.
 
-You can change the python version here to the version you prefer.
+## Methods Used
 
-**Virtual Environment**
+- **Bayesian Optimization**
+- **Hyperparameter Optimization**
+- **Differentiable Architecture Search (DARTS)**
+- **ResNet34 Fine-Tuning**
+- **Data Augmentation**
+- **Model Checkpointing**
 
-```bash
-python3 -m venv automl-vision-env
-source automl-vision-env/bin/activate
-```
+## Approach
 
-**Conda Environment**
+The pipeline follows a systematic approach:
 
-Can also use `conda`, left to individual preference.
+1. **Data Preprocessing**:
+   - Train/test split (80% for training, 20% for validation).
+   - Data augmentation techniques: Resize (256), CenterCrop (224), RandomHorizontalFlip(), RandomRotation (30), Normalize.
 
-```bash
-conda create -n automl-vision-env python=3.11
-conda activate automl-vision-env
-```
+2. **Model Fine-Tuning**:
+   - Fine-tuned ResNet34 is used as the initial feature extractor, with adjustments to optimize for specific datasets.
+   - fc1000 layer is replaced with a Multi-Layer Perceptron (MLP) discovered by DARTS, customized per dataset.
 
-Then install the repository by running the following command:
+3. **Bayesian Optimization**:
+   - Used for hyperparameter tuning with Gaussian Processes.
+   - Parameters include learning rate, momentum, weight decay, and optimizer selection.
+   - Optimizations are applied iteratively every epoch to improve the finetuned model's performance.
 
-```bash
-pip install -e .
-```
+4. **Differentiable Architecture Search (DARTS)**:
+   - DARTS Classifier searches for the optimal architecture using a mixed layer approach, including blocks with various layer sizes and activation functions.
 
-You can test that the installation was successful by running the following command:
+### Resource Allocation
 
-```bash
-python -c "import automl"
-```
+For development and AutoML, the following resources were utilized:
+- **NVIDIA GTX 1050TI**
+- **Intel Core i5-7300HQ**
 
-We make no restrictions on the python library or version you use, but we recommend using python 3.8 or higher.
+## Empirical Results
 
-## Code
+The model's performance was evaluated across several datasets, with results compared against baseline metrics:
 
-We provide the following:
+| Dataset     | Our Method (F1 Score) | Baseline (F1 Score) | Precision | Accuracy |
+|-------------|------------------------|----------------------|-----------|----------|
+| Emotions    | 0.63                   | N/A                  | 0.64      | 0.66     |
+| Fashion     | 0.93                   | 0.93                 | 0.94      | 0.93     |
+| Flowers     | 0.93                   | 0.94                 | 0.94      | 0.55     |
+| Skin Cancer | 0.77                   | N/A                  | 0.79      | 0.87     |
 
-* `run.py`: A script that trains an _AutoML-System_ on the training split `dataset_train` of a given dataset and then
-  generates predictions for the test split `dataset_test`, saving those predictions to a file. For the training
-  datasets, the test splits will contain the ground truth labels, but for the test dataset which we provide later the
-  labels of the test split will not be available. You will be expected to generate these labels yourself and submit
-  them to us through GitHub classrooms.
+### Optimal Parameters
 
-* `src/automl`: This is a python package that will be installed above and contain your source code for whatever
-  system you would like to build. We have provided a dummy `AutoML` class to serve as an example.
+- **Bayesian Optimization (Skin Cancer Dataset)**
+- **DARTS Parameters for Skin Cancer Dataset**
 
-**You are completely free to modify, install new libraries, make changes and in general do whatever you want with the
-code.** The only requirement for the exam will be that you can generate predictions for the test splits of our datasets
-in a `.npy` file that we can then use to give you a test score through GitHub classrooms.
+## Visual Results
 
+The following figures illustrate the distribution of DARTS alpha values and the accuracy achieved using each DARTS operation:
 
-## Data
+1. **Alpha Distribution (After Training DARTS)** - Shows the distribution of alpha values after DARTS optimization.
+2. **Validation vs. Training Loss (Bayesian Optimization)** - Visual representation of loss metrics.
+3. **Classification Accuracy per DARTS Operation** - Accuracy achieved by each operation within DARTS on test datasets.
 
-We selected three different vision datasets which you can use to develop your AutoML system and we will provide you with
-a test dataset to evaluate your system at a later point in time. The datasets can be automatically downloaded by the
-respective dataset classes in `./src/automl/datasets.py`. The datasets are: _fashion_, _flowers_, and _emotions_.
+## References
 
-If there are any problems downloading the datasets, you can download them manually
-from https://ml.informatik.uni-freiburg.de/research-artifacts/automl-exam-24-vision/ and place them in the `/data` folder
-after unzipping them.
+1. He, K., Zhang, X., Ren, S., & Sun, J. (2015). Deep Residual Learning for Image Recognition. 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 770-778.
+2. Liu, H., Simonyan, K., & Yang, Y. (2018). DARTS: Differentiable Architecture Search. arXiv preprint arXiv:1806.09055.
+3. Zhu, Y., Zheng, S., & Yao, X. (2020). An Efficient Transfer Learning-based Model for Plant Disease Classification.
 
-The downloaded datasets will have the following structure:
-```bash
-./data
-├── fashion
-│   ├── images_test
-│   │   ├── 000001.jpg
-│   │   ├── 000002.jpg
-│   │   ├── 000003.jpg
-│   │   ...
-│   ├── images_train
-│   │   ├── 000001.jpg
-│   │   ├── 000002.jpg
-│   │   ├── 000003.jpg
-│   │   ...
-│   ├── description.md
-│   ├── fashion.tgz
-│   ├── test.csv
-│   └── train.csv
-├── emotions
-    ...
-...
-```
-Feel free to explore the images and the `description.md` files to get a better understanding of the datasets.
-The following table will provide you an overview of their characteristics and also a reference value for the 
-accuracy that a naive AutoML system could achieve on these datasets:
+## Contact
 
-| Dataset name | # Classes | # Train samples | # Test samples | # Channels | Resolution | Reference Accuracy |
-|--------------|-----------|-----------------|----------------|------------|------------|--------------------|
-| fashion      | 10        | 60,000          | 10,000         | 1          | 28x28      | 0.88               |
-| flowers      | 102*      | 5732            | 2,457          | 3          | 512x512    | 0.55               |
-| emotions     | 7         | 28709           | 7,178          | 1          | 48x48      | 0.40               |
-| **skin_cancer**  |**7\***       | **7,010**          | **3,005**          | **3**          | **450x450**    | **0.71**               |
-
-*classes are imbalanced
-
-We will add the test dataset later by pushing its class definition to the `datasets.py` file. 
-The test dataset will be in the same
-format as the training datasets, but `test.csv` will only contain nan's for labels.
-
-**Update**: We now provide the `skin_cancer` test dataset. 
-
-
-## Running an initial test
-
-This will download the _fashion_ dataset into `./data`, train a dummy AutoML system and generate predictions for the test
-split:
-
-```bash 
-python run.py --dataset fashion --seed 42 --output-path preds-42-fashion.npy
-```
-
-## Running auto evaluation on test dataset
-
-Only activates on the `test` branch:
-```bash
-git checkout -b test  # to create the branch
-# or
-# if branch exists
-git checkout test
-git merge <name-of-branch-where-current-code-to-test-exists>
-# ensure that your latest `predictions.npy` exists
-git push origin test  # depending on MERGE-CONFLICTS might need to resolve and add files
-# wait for some time (few minutes) or monitor the web UI of Github to see Actions passing
-git pull
-# test scores will be downloaded under `./exam_dataset/test_out/`
-```
-
-* To initialize auto-evaluation for the test data, create a `test` branch. 
-* After publishing it, the evaluation script will automatically trigger.
-* After creating the `test` branch, you may also run the evaluation script on any other branch manually.
-  * To do that, navigate to the `Actions` tab at the GitHub remote repository and proceed by pressing the `Run workflow` button.
-  * Triggering the workflow by pushing to the `test` branch is highly recommended for your own logging purposes (use the commit message).
-* For the evaluation to run correctly, make sure the `predictions.npy` is at the right location.
-* The results are also pushed to your repo (don't forget to `git pull`)
-* If no test predictions generated, check the errors in the Github action (red cross inline with your last commit on the test branch)
-
-```bash
-./data
-├── skin_cancer
-└── auto_evaluation
-│   └── predictions.npy
-│   └── test_out
-│   │   ├── test_evaluation_output_2024-MM-DD_HH-mm
-.   .   .
-```
+For questions or further information, please contact the author.
